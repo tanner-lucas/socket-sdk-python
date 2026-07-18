@@ -14,6 +14,7 @@ import os
 from unittest.mock import Mock, patch
 from socketdev import socketdev
 from socketdev.fullscans import FullScanParams
+from socketdev.quota import GetQuotaResponse, Quota
 
 
 class TestWorkingEndpointsUnit(unittest.TestCase):
@@ -83,15 +84,47 @@ class TestWorkingEndpointsUnit(unittest.TestCase):
 
     def test_quota_get_unit(self):
         """Test quota retrieval - WORKING."""
-        expected_data = {"quota": 1000, "used": 100}
+        expected_data = {"quota": 1000, "maxQuota": 10000, "nextWindowRefresh": "2026-01-01T00:00:00.000Z"}
         self._mock_response(expected_data)
-        
+
         result = self.sdk.quota.get()
-        
+
         self.assertEqual(result, expected_data)
         call_args = self.mock_requests.request.call_args
         self.assertEqual(call_args[0][0], "GET")
         self.assertIn("/quota", call_args[0][1])
+
+    def test_quota_get_typed_unit(self):
+        """Test quota retrieval with use_types=True returns GetQuotaResponse."""
+        expected_data = {"quota": 1000, "maxQuota": 10000, "nextWindowRefresh": "2026-01-01T00:00:00.000Z"}
+        self._mock_response(expected_data)
+
+        result = self.sdk.quota.get(use_types=True)
+
+        self.assertIsInstance(result, GetQuotaResponse)
+        self.assertTrue(result.success)
+        self.assertEqual(result.status, 200)
+        self.assertEqual(result.data.quota, 1000)
+        self.assertEqual(result.data.maxQuota, 10000)
+        self.assertEqual(result.data.nextWindowRefresh, "2026-01-01T00:00:00.000Z")
+
+    def test_quota_get_typed_error_unit(self):
+        """Test quota retrieval error with use_types=True returns typed failure."""
+        # do_request raises for status >= 400, so stub the API layer directly
+        # to exercise the module's own non-200 branch.
+        mock_api = Mock()
+        mock_api.do_request.return_value = Mock(
+            status_code=204, json=Mock(return_value={"error": {"message": "No content"}})
+        )
+        quota = Quota(mock_api)
+
+        result = quota.get(use_types=True)
+
+        self.assertIsInstance(result, GetQuotaResponse)
+        self.assertFalse(result.success)
+        self.assertEqual(result.status, 204)
+        self.assertIsNone(result.data)
+        self.assertEqual(result.message, "No content")
 
     def test_settings_get_unit(self):
         """Test settings retrieval - WORKING."""
