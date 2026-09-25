@@ -11,6 +11,8 @@ import unittest
 import tempfile
 import json
 import os
+import io
+import contextlib
 from unittest.mock import Mock, patch, mock_open
 from socketdev import socketdev
 from socketdev.fullscans import FullScanParams
@@ -329,6 +331,24 @@ class TestAllEndpointsUnit(unittest.TestCase):
                 
             finally:
                 os.unlink(f.name)
+
+    def test_fullscans_post_does_not_print_to_stdout(self):
+        """Dropping unset params is logged, not printed to the caller's stdout."""
+        self._mock_response({"id": "new-scan"}, 201)
+        params = FullScanParams(repo="test-repo", org_slug="test-org")
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout), self.assertLogs("socketdev", level="DEBUG") as logs:
+            self.sdk.fullscans.post([], params)
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertTrue(any("Removing pull_request param" in m for m in logs.output))
+        self.assertTrue(any("Removing workspace param" in m for m in logs.output))
+
+    def test_set_timeout_warns_deprecated(self):
+        """socketdev.set_timeout() is a no-op and says so."""
+        with self.assertWarns(DeprecationWarning):
+            socketdev.set_timeout(30)
 
     def test_fullscans_delete_unit(self):
         """Test fullscans deletion."""

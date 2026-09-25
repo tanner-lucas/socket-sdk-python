@@ -885,11 +885,11 @@ class FullScans:
             not isinstance(params.pull_request, int) or 
             params.pull_request == 0
         ):
-            print("Removing pull_request param from FullScanParams as it is None, 0, or not an integer")
+            log.debug("Removing pull_request param from FullScanParams as it is None, 0, or not an integer")
             params_dict.pop("pull_request")
 
         if hasattr(params, 'workspace') and params.workspace is None:
-            print("Removing workspace param from FullScanParams as it is None")
+            log.debug("Removing workspace param from FullScanParams as it is None")
             params_dict.pop("workspace")
 
         params_arg = urllib.parse.urlencode(params_dict)

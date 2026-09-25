@@ -1,4 +1,5 @@
 import os
+import warnings
 from socketdev.core.api import API
 from socketdev.dependencies import Dependencies
 from socketdev.diffscans import DiffScans
@@ -111,5 +112,10 @@ class socketdev:
 
     @staticmethod
     def set_timeout(timeout: int):
-        # Kept for backwards compatibility
-        pass
+        # Kept for backwards compatibility; it never had any effect.
+        warnings.warn(
+            "socketdev.set_timeout() has no effect. "
+            "Pass timeout to the socketdev constructor, e.g. socketdev(token=..., timeout=30).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
